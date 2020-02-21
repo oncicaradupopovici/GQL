@@ -6,9 +6,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="Schemas.fs" />
-    <Compile Include="Queries.fs" />
+    <Compile Include="Schema.fs" />
     <Compile Include="Resolvers.fs" />
+    <Compile Include="Queries.fs" />
     <Compile Include="Infra.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>

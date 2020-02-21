@@ -1,31 +1,37 @@
 ﻿namespace GQL
 
 open NBB.Core.Effects
-open Schemas
+open NBB.Core.Effects.FSharp
+open Schema
+open Resolvers
 
 module Queries =
-    type GetAllClientsQuery() =
-        interface ISideEffect<Client list>
 
-    type GetClientByIdQuery = {
-        ClientId: int
-    } with interface ISideEffect<Client>
+    let getAllClients = Effect.Of << GetAllClientsResolver
+    let getClientById = Effect.Of << GetClientByIdResolver
+    let getAllContracts = Effect.Of << GetAllContractsResolver
+    let getContractsByClientId = Effect.Of << GetContractsByClientIdResolver
+    let getContractById = Effect.Of << GetContractByIdResolver
 
-    type GetAllContractsQuery() =
-        interface ISideEffect<Contract list>
+    let getContractWithClient clientId = 
+        effect {
+            let! contract = getContractById clientId
+            let! client = getClientById contract.ClientId
+            return ContractWithClient.from contract client
+        }
 
-    type GetContractsByClientIdQuery = {
-        ClientId: int
-    } with interface ISideEffect<Contract list>
-
-    type GetContractByIdQuery = {
-        ContractId: int
-    } with interface ISideEffect<Contract>
-
-
-    let getAllClients() = Effect.Of (GetAllClientsQuery())
-    let getClientById clientId = Effect.Of {GetClientByIdQuery.ClientId = clientId}
-    let getAllContracts() = Effect.Of (GetAllContractsQuery())
-    let getContractsByClientId clientId = Effect.Of ({GetContractsByClientIdQuery.ClientId = clientId})
-    let getContractById contractId = Effect.Of {GetContractByIdQuery.ContractId = contractId}
+    let getClientByContractId = 
+        let getClientId = fun (c:Contract) -> c.ClientId
+        getContractById >=> (getClientId >> getClientById)
+    
+    let getClientWithContracts clientID =
+        effect {
+            let! client = getClientById clientID
+            let! contracts = getContractsByClientId client.ClientId
+            return (client, contracts)
+        }
+    
+    let getAllClientsWithContracts =
+        let getContracts (c:Client) = getContractsByClientId c.ClientId |> Effect.map (fun contracts -> (c,contracts))
+        getAllClients >=> (List.traverseEffect getContracts)
 
